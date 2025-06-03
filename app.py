@@ -1,22 +1,30 @@
-from flask import Flask, request
-import requests
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-# URL du PC local où tourne test.py (il faut que ce soit accessible depuis le serveur)
-LOCAL_PC_URL = "http://172.20.10.2:5001/beep"
+clients = []
 
-@app.route('/app', methods=['POST'])
-def passerelle():
-    try:
-        # On transmet la requête à test.py sur ton PC
-        r = requests.post(LOCAL_PC_URL)
-        if r.status_code == 200:
-            return "Requête transmise au PC local"
-        else:
-            return "Erreur de transmission", 500
-    except Exception as e:
-        return f"Erreur: {str(e)}", 500
+@socketio.on('connect')
+def handle_connect():
+    print('Client connecté')
+    clients.append(request.sid)
 
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=80)
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client déconnecté')
+    clients.remove(request.sid)
+
+@app.route('/')
+def index():
+    return "Serveur actif"
+
+# Ici tu peux émettre une commande à tous les clients connectés
+def send_command_to_clients(command):
+    for client in clients:
+        socketio.emit('command', command, to=client)
+
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', port=80)
