@@ -4,7 +4,7 @@ import requests
 app = Flask(__name__)
 
 # URL du PC local où tourne test.py (il faut que ce soit accessible depuis le serveur)
-LOCAL_PC_URL = "http://IP_DE_TON_PC:5001/beep"
+LOCAL_PC_URL = "http://172.20.10.2:5001/beep"
 
 @app.route('/app', methods=['POST'])
 def passerelle():
