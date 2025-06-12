@@ -1,36 +1,41 @@
-from flask import Flask, request, send_file
-from io import BytesIO
+from flask import Flask, request, jsonify, send_file
+import os
 
 app = Flask(__name__)
 
-SOUND_DATA = None
+UPLOAD_FOLDER = "uploaded_sounds"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-@app.route("/upload", methods=["POST"])
-def upload():
-    global SOUND_DATA
-    file = request.files.get("file")
-    if file:
-        SOUND_DATA = file.read()
-        return "Fichier reçu", 200
-    return "Aucun fichier", 400
+current_sound = None  # nom du fichier son à jouer
 
-@app.route("/check")
-def check():
-    if SOUND_DATA:
-        return "READY", 200
-    return "NO", 204
+@app.route("/upload-sound", methods=["POST"])
+def upload_sound():
+    global current_sound
+    if 'file' not in request.files or 'sound' not in request.form:
+        return "Fichier ou nom du son manquant", 400
 
-@app.route("/get-sound")
-def get_sound():
-    global SOUND_DATA
-    if not SOUND_DATA:
-        return "Pas de son", 404
-    # On renvoie une copie en mémoire et on efface le fichier
-    data = BytesIO(SOUND_DATA)
-    SOUND_DATA = None
-    return send_file(data, mimetype="audio/mpeg", download_name="sound.mp3")
-    
+    file = request.files['file']
+    sound_name = request.form['sound']
+
+    filepath = os.path.join(UPLOAD_FOLDER, sound_name)
+    file.save(filepath)
+    current_sound = sound_name
+    return "Son reçu avec succès", 200
+
+@app.route("/check-sound")
+def check_sound():
+    if current_sound:
+        return jsonify({"sound": current_sound})
+    else:
+        return jsonify({"sound": None})
+
+@app.route("/get-sound/<sound_name>")
+def get_sound(sound_name):
+    filepath = os.path.join(UPLOAD_FOLDER, sound_name)
+    if os.path.exists(filepath):
+        return send_file(filepath, mimetype="audio/mpeg")
+    else:
+        return "Son non trouvé", 404
+
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=5000)
