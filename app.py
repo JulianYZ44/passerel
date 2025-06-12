@@ -22,9 +22,13 @@ def check():
 
 @app.route("/get-sound")
 def get_sound():
+    global SOUND_DATA
     if not SOUND_DATA:
         return "Pas de son", 404
-    return send_file(BytesIO(SOUND_DATA), mimetype="audio/mpeg", download_name="sound.mp3")
+    # On renvoie une copie en mémoire et on efface le fichier
+    data = BytesIO(SOUND_DATA)
+    SOUND_DATA = None
+    return send_file(data, mimetype="audio/mpeg", download_name="sound.mp3")
     
 if __name__ == "__main__":
     import os
